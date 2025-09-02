@@ -19,6 +19,21 @@ const isPointWithinEdge = (
   )
 }
 
+// Helper to check if a point lies on or very near an edge endpoint
+const isPointNearEndpoint = (
+  point: { x: number; y: number },
+  edge: SchematicTrace["edges"][number],
+): boolean => {
+  const dx1 = Math.abs(point.x - edge.from.x)
+  const dy1 = Math.abs(point.y - edge.from.y)
+  const dx2 = Math.abs(point.x - edge.to.x)
+  const dy2 = Math.abs(point.y - edge.to.y)
+  return (
+    (dx1 < TOLERANCE && dy1 < TOLERANCE) ||
+    (dx2 < TOLERANCE && dy2 < TOLERANCE)
+  )
+}
+
 // Helper function to determine edge orientation
 const getEdgeOrientation = (
   edge: SchematicTrace["edges"][number],
@@ -124,10 +139,18 @@ export const createSchematicTraceJunctions = ({
     for (const otherEdge of otherEdges) {
       const intersection = getIntersectionPoint(myEdge, otherEdge)
       if (intersection) {
-        // Use a more precise key format to avoid floating-point issues
-        const key = `${intersection.x.toFixed(6)},${intersection.y.toFixed(6)}`
-        if (!junctions.has(key)) {
-          junctions.set(key, intersection)
+        // Only create a junction when the intersection occurs at an endpoint
+        // of either edge. Mid-edge intersections represent trace crossings and
+        // should not produce a junction indicator.
+        const isEndpointIntersection =
+          isPointNearEndpoint(intersection, myEdge) ||
+          isPointNearEndpoint(intersection, otherEdge)
+
+        if (isEndpointIntersection) {
+          const key = `${intersection.x.toFixed(6)},${intersection.y.toFixed(6)}`
+          if (!junctions.has(key)) {
+            junctions.set(key, intersection)
+          }
         }
       }
     }
