@@ -160,6 +160,26 @@ export function computeCrossings(
   const crossLen = opts.crossSegmentLength ?? 0.075
   const tol = opts.tolerance ?? TOL
 
+  // Precompute endpoint orientations for all traces to help choose which
+  // trace receives a crossing when a junction is also present at the
+  // intersection point.
+  const endpointInfo = new Map<
+    string,
+    Array<{ traceIdx: number; orient: "horizontal" | "vertical" }>
+  >()
+  for (let ti = 0; ti < traces.length; ti++) {
+    const trace = traces[ti]
+    for (const e of trace.edges) {
+      const orient = isHorizontalEdge(e) ? "horizontal" : "vertical"
+      for (const p of [e.from, e.to]) {
+        const key = `${p.x.toFixed(6)},${p.y.toFixed(6)}`
+        const arr = endpointInfo.get(key) ?? []
+        arr.push({ traceIdx: ti, orient })
+        endpointInfo.set(key, arr)
+      }
+    }
+  }
+
   // Collect intersections per edge reference
   type EdgeRef = { traceIdx: number; edgeIdx: number }
   const crossingsByEdge = new Map<string, number[]>()
@@ -196,12 +216,25 @@ export function computeCrossings(
           // Crossing is when both are away from endpoints
           if (!nearEndpointA && !nearEndpointB) {
             // Only one of the traces should receive the crossing marker.
-            // Prefer assigning the crossing to the more horizontal edge.
+            // Prefer assigning the crossing to the more horizontal edge, but if
+            // there's a junction at this point choose the edge that doesn't
+            // participate in that junction to avoid overlap.
+
+            const pointKey = `${P.x.toFixed(6)},${P.y.toFixed(6)}`
+            const otherOrients = new Set(
+              (endpointInfo.get(pointKey) ?? [])
+                .filter((info) => info.traceIdx !== ti && info.traceIdx !== tj)
+                .map((info) => info.orient),
+            )
+
             const aIsHorizontal = isHorizontalEdge(eA)
             const bIsHorizontal = isHorizontalEdge(eB)
 
             let assignToA: boolean
-            if (aIsHorizontal !== bIsHorizontal) {
+            if (otherOrients.size === 1 && aIsHorizontal !== bIsHorizontal) {
+              const orient = otherOrients.values().next().value
+              assignToA = orient === "horizontal" ? aIsHorizontal : !aIsHorizontal
+            } else if (aIsHorizontal !== bIsHorizontal) {
               // If exactly one is horizontal, prefer the horizontal one
               assignToA = aIsHorizontal
             } else {
