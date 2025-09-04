@@ -575,12 +575,12 @@ export abstract class PrimitiveComponent<
     }
     // Check for component name conflicts
     if (component._parsedProps?.name && component.componentName !== "Port") {
-      const existingComponent = this.children.find(
+      const existingComponentWithSameName = this.children.find(
         (c) =>
           c._parsedProps?.name === component._parsedProps.name &&
           c.componentName !== "Port",
       )
-      if (existingComponent) {
+      if (existingComponentWithSameName) {
         const errorPlaceholder = createErrorPlaceholderComponent(
           { ...component.props, componentType: component.componentName },
           new Error(
