@@ -1,7 +1,5 @@
 import { distance, doesLineIntersectLine } from "@tscircuit/math-utils"
-import type { CircuitJsonUtilObjects } from "@tscircuit/circuit-json-util"
 import type { SchematicTrace } from "circuit-json"
-import { getOtherSchematicTraces } from "./get-other-schematic-traces"
 import { getUnitVectorFromPointAToB } from "@tscircuit/math-utils"
 
 /**
@@ -12,9 +10,11 @@ import { getUnitVectorFromPointAToB } from "@tscircuit/math-utils"
 export const createSchematicTraceCrossingSegments = ({
   edges: inputEdges,
   otherEdges,
+  junctions,
 }: {
   edges: SchematicTrace["edges"]
   otherEdges: SchematicTrace["edges"]
+  junctions?: Array<{ x: number; y: number }>
 }) => {
   const edges = [...inputEdges]
   // For each edge in our trace
@@ -71,6 +71,12 @@ export const createSchematicTraceCrossingSegments = ({
           edgeOrientation === "vertical" ? otherEdge.from.y : edge.from.y
 
         const crossingPoint = { x: intersectX, y: intersectY }
+
+        // Skip creating a crossing segment if there's a junction at this point
+        const isJunction = junctions?.some(
+          (j) => distance(j, crossingPoint) < 0.01,
+        )
+        if (isJunction) continue
 
         otherEdgesIntersections.push({
           otherEdge,

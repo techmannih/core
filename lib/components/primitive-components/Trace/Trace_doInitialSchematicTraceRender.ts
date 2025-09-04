@@ -372,6 +372,15 @@ export const Trace_doInitialSchematicTraceRender = (trace: Trace) => {
     // push them out of the way
     pushEdgesOfSchematicTraceToPreventOverlap({ edges, db, source_trace_id })
 
+    // Find all the intersections between myEdges and edges connected to the
+    // same net and create junction points
+    // Calculate junctions where traces of the same net intersect
+    junctions = createSchematicTraceJunctions({
+      edges,
+      db,
+      source_trace_id: trace.source_trace_id!,
+    })
+
     // Find all intersections between myEdges and all otherEdges and create a
     // segment representing the crossing. Wherever there's a crossing, we create
     // 3 new edges. The middle edge has `is_crossing: true` and is 0.01mm wide
@@ -380,15 +389,10 @@ export const Trace_doInitialSchematicTraceRender = (trace: Trace) => {
       source_trace_id,
       differentNetOnly: true,
     }).flatMap((t: SchematicTrace) => t.edges)
-    edges = createSchematicTraceCrossingSegments({ edges, otherEdges })
-
-    // Find all the intersections between myEdges and edges connected to the
-    // same net and create junction points
-    // Calculate junctions where traces of the same net intersect
-    junctions = createSchematicTraceJunctions({
+    edges = createSchematicTraceCrossingSegments({
       edges,
-      db,
-      source_trace_id: trace.source_trace_id!,
+      otherEdges,
+      junctions,
     })
   }
 
