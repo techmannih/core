@@ -92,6 +92,10 @@ export function applyNetLabelPlacements(args: {
           ? { source_net_id: sourceNet.source_net_id }
           : {}),
       })
+      for (const schPortId of schPortIds) {
+        const existing = db.schematic_port.get(schPortId)
+        if (existing) db.schematic_port.update(schPortId, { is_connected: true })
+      }
       continue
     }
 
@@ -126,5 +130,9 @@ export function applyNetLabelPlacements(args: {
       center,
       anchor_side: anchor_side as any,
     })
+    for (const schPortId of schPortIds) {
+      const existing = db.schematic_port.get(schPortId)
+      if (existing) db.schematic_port.update(schPortId, { is_connected: true })
+    }
   }
 }
