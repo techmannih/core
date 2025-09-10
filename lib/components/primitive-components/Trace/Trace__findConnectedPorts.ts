@@ -1,6 +1,8 @@
 import type { Port } from "../Port/Port"
 import type { Trace } from "./Trace"
 import { TraceConnectionError } from "../../../errors"
+import { Via } from "../Via"
+import type { LayerRef } from "circuit-json"
 
 export function Trace__findConnectedPorts(trace: Trace):
   | {
@@ -75,6 +77,52 @@ export function Trace__findConnectedPorts(trace: Trace):
       const portNames = ports.flatMap((c) => c.getNameAndAliases())
       const hasCustomLabels = portNames.some((n) => !/^(pin\d+|\d+)$/.test(n))
       const labelList = Array.from(new Set(portNames)).join(", ")
+
+      // Special handling for via layer selectors
+      if (targetComponent instanceof Via) {
+        const layerOrder: LayerRef[] = [
+          "top",
+          "inner1",
+          "inner2",
+          "bottom",
+        ]
+        const viaName = targetComponent.props.name ?? parentSelector
+        if (!layerOrder.includes(portLabel as LayerRef)) {
+          const subcircuit = trace.getSubcircuit()
+          const sourceGroup = subcircuit.getGroup()
+          throw new TraceConnectionError({
+            error_type: "source_trace_not_connected_error",
+            message: `Unknown via layer '${portLabel}' for ${viaName}.`,
+            subcircuit_id: subcircuit.subcircuit_id ?? undefined,
+            source_group_id: sourceGroup?.source_group_id ?? undefined,
+            source_trace_id: trace.source_trace_id ?? undefined,
+            selectors_not_found: [selector],
+          })
+        }
+
+        const fromLayer = (targetComponent._parsedProps.fromLayer ?? "bottom") as LayerRef
+        const toLayer = (targetComponent._parsedProps.toLayer ?? "top") as LayerRef
+        const fromIndex = layerOrder.indexOf(fromLayer)
+        const toIndex = layerOrder.indexOf(toLayer)
+        const start = Math.min(fromIndex, toIndex)
+        const end = Math.max(fromIndex, toIndex)
+        const spanLayers = layerOrder.slice(start, end + 1)
+
+        if (!spanLayers.includes(portLabel as LayerRef)) {
+          const spanStr = `${fromLayer}…${toLayer}`
+          const subcircuit = trace.getSubcircuit()
+          const sourceGroup = subcircuit.getGroup()
+          throw new TraceConnectionError({
+            error_type: "source_trace_not_connected_error",
+            message: `Layer '${portLabel}' not in ${viaName} span (${spanStr}). Available: ${spanLayers.join(", ")}.`,
+            subcircuit_id: subcircuit.subcircuit_id ?? undefined,
+            source_group_id: sourceGroup?.source_group_id ?? undefined,
+            source_trace_id: trace.source_trace_id ?? undefined,
+            selectors_not_found: [selector],
+          })
+        }
+      }
+
       let detail: string
       if (ports.length === 0) {
         detail = "It has no ports"

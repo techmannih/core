@@ -1,6 +1,7 @@
 import { viaProps } from "@tscircuit/props"
 import { PrimitiveComponent } from "../base-components/PrimitiveComponent"
-import type { Port } from "./Port"
+import { Port } from "./Port"
+import type { LayerRef } from "circuit-json"
 
 export class Via extends PrimitiveComponent<typeof viaProps> {
   pcb_via_id: string | null = null
@@ -75,5 +76,61 @@ export class Via extends PrimitiveComponent<typeof viaProps> {
     })
 
     this.pcb_via_id = pcb_via.pcb_via_id
+  }
+
+  /**
+   * Initialize port objects for each layer the via spans. These ports allow
+   * traces to explicitly connect to a specific layer of the via using selectors
+   * like `Via1.top` or `Via1.bottom`.
+   */
+  initPorts() {
+    if (this.children.some((c) => c.componentName === "Port")) return
+    const layers = this._getLayerSpan()
+    for (const layer of layers) {
+      this.add(new ViaPort(this, layer))
+    }
+  }
+
+  /**
+   * Compute the list of layers this via spans, inclusive, based on fromLayer
+   * and toLayer props.
+   */
+  _getLayerSpan(): LayerRef[] {
+    const order: LayerRef[] = ["top", "inner1", "inner2", "bottom"]
+    const fromLayer = (this._parsedProps.fromLayer ?? "bottom") as LayerRef
+    const toLayer = (this._parsedProps.toLayer ?? "top") as LayerRef
+    const fromIndex = order.indexOf(fromLayer)
+    const toIndex = order.indexOf(toLayer)
+    const start = Math.min(fromIndex, toIndex)
+    const end = Math.max(fromIndex, toIndex)
+    return order.slice(start, end + 1)
+  }
+
+  doInitialSourceRender(): void {
+    this.initPorts()
+  }
+}
+
+class ViaPort extends Port {
+  via: Via
+  layer: LayerRef
+
+  constructor(via: Via, layer: LayerRef) {
+    super({ name: layer })
+    this.via = via
+    this.layer = layer
+    this.matchedComponents.push(via)
+  }
+
+  override getAvailablePcbLayers(): LayerRef[] {
+    return [this.layer]
+  }
+
+  override _getGlobalPcbPositionBeforeLayout(): { x: number; y: number } {
+    return this.via._getGlobalPcbPositionBeforeLayout()
+  }
+
+  override _getGlobalPcbPositionAfterLayout(): { x: number; y: number } {
+    return this.via._getPcbCircuitJsonBounds().center
   }
 }
