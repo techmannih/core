@@ -4,6 +4,11 @@ import type { SchematicTrace } from "circuit-json"
 import { getOtherSchematicTraces } from "./get-other-schematic-traces"
 import { getUnitVectorFromPointAToB } from "@tscircuit/math-utils"
 
+const isSamePoint = (
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+) => distance(a, b) < 0.001
+
 /**
  *  Find all intersections between myEdges and all otherEdges and create a
  *  segment representing the crossing. Wherever there's a crossing, we create
@@ -72,6 +77,15 @@ export const createSchematicTraceCrossingSegments = ({
 
         const crossingPoint = { x: intersectX, y: intersectY }
 
+        if (
+          isSamePoint(crossingPoint, edge.from) ||
+          isSamePoint(crossingPoint, edge.to) ||
+          isSamePoint(crossingPoint, otherEdge.from) ||
+          isSamePoint(crossingPoint, otherEdge.to)
+        ) {
+          continue
+        }
+
         otherEdgesIntersections.push({
           otherEdge,
           crossingPoint: crossingPoint,
@@ -97,7 +111,10 @@ export const createSchematicTraceCrossingSegments = ({
     const crossingPoint = closestIntersection.crossingPoint
     const crossingSegmentLength = 0.075 // mm
 
-    if (crossingPoint.x === edge.from.x && crossingPoint.y === edge.from.y) {
+    if (
+      isSamePoint(crossingPoint, edge.from) ||
+      isSamePoint(crossingPoint, edge.to)
+    ) {
       // On top of each other, the unit vector would be undefined, no crossing
       // necessary
       continue
