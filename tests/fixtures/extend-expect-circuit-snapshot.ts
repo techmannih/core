@@ -11,6 +11,7 @@ import looksSame from "looks-same"
 import { RootCircuit } from "lib/RootCircuit"
 import type { AnyCircuitElement } from "circuit-json"
 import { convertCircuitJsonToSimple3dSvg } from "circuit-json-to-simple-3d"
+import { normalizePlatedHoleShapesForSvg } from "lib/utils/normalizePlatedHoleShapesForSvg"
 
 async function saveSvgSnapshotOfCircuitJson({
   soup,
@@ -35,7 +36,9 @@ async function saveSvgSnapshotOfCircuitJson({
   let svg: string
   switch (mode) {
     case "pcb":
-      svg = convertCircuitJsonToPcbSvg(soup)
+      svg = convertCircuitJsonToPcbSvg(
+        normalizePlatedHoleShapesForSvg(soup),
+      )
       break
     case "schematic":
       svg = convertCircuitJsonToSchematicSvg(soup, options)
