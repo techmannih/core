@@ -109,18 +109,17 @@ export class PlatedHole extends PrimitiveComponent<typeof platedHoleProps> {
       const pcb_plated_hole = db.pcb_plated_hole.insert({
         pcb_component_id,
         pcb_port_id: this.matchedPort?.pcb_port_id!,
-        outer_width: props.outerDiameter,
-        outer_height: props.outerDiameter,
-        hole_width: props.holeDiameter,
-        hole_height: props.holeDiameter,
-        shape: "oval" as const,
+        // @ts-ignore - some issue with circuit-json union type
+        outer_diameter: props.outerDiameter,
+        hole_diameter: props.holeDiameter,
+        shape: "circle" as const,
         port_hints: this.getNameAndAliases(),
         x: position.x,
         y: position.y,
         layers: ["top", "bottom"],
         subcircuit_id: subcircuit?.subcircuit_id ?? undefined,
         pcb_group_id: this.getGroup()?.pcb_group_id ?? undefined,
-      } as PcbPlatedHoleOval)
+      } as PCBPlatedHoleInput)
 
       this.pcb_plated_hole_id = pcb_plated_hole.pcb_plated_hole_id
       db.pcb_solder_paste.insert({
