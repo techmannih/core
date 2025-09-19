@@ -6,6 +6,7 @@ import { isValidElement, type ReactElement } from "react"
 import { createInstanceFromReactElement } from "./fiber/create-instance-from-react-element"
 import { identity, type Matrix } from "transformation-matrix"
 import pkgJson from "../package.json"
+import { normalizePlatedHoleShapesForSvg } from "./utils/normalizePlatedHoleShapesForSvg"
 import type { RootCircuitEventName } from "./events"
 import type { PlatformConfig } from "@tscircuit/props"
 import { Group } from "./components/primitive-components/Group"
@@ -161,7 +162,8 @@ export class RootCircuit {
     })
 
     if (options.view === "pcb") {
-      return circuitToSvg.convertCircuitJsonToPcbSvg(this.getCircuitJson())
+      const soup = normalizePlatedHoleShapesForSvg(this.getCircuitJson())
+      return circuitToSvg.convertCircuitJsonToPcbSvg(soup)
     }
     if (options.view === "schematic") {
       return circuitToSvg.convertCircuitJsonToSchematicSvg(
