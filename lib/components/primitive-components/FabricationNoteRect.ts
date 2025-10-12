@@ -60,4 +60,9 @@ export class FabricationNoteRect extends PrimitiveComponent<
     this.fabrication_note_rect_id =
       fabrication_note_rect.pcb_fabrication_note_rect_id
   }
+
+  getPcbSize(): { width: number; height: number } {
+    const { _parsedProps: props } = this
+    return { width: props.width, height: props.height }
+  }
 }
