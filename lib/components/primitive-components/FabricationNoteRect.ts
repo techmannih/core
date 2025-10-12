@@ -1,5 +1,4 @@
 import { fabricationNoteRectProps } from "@tscircuit/props"
-import { applyToPoint } from "transformation-matrix"
 import { PrimitiveComponent } from "../base-components/PrimitiveComponent"
 
 export class FabricationNoteRect extends PrimitiveComponent<
@@ -19,19 +18,16 @@ export class FabricationNoteRect extends PrimitiveComponent<
     if (this.root?.pcbDisabled) return
     const { db } = this.root!
     const { _parsedProps: props } = this
+    const { maybeFlipLayer } = this._getPcbPrimitiveFlippedHelpers()
 
-    const layer = props.layer ?? "top"
+    const layer = maybeFlipLayer(props.layer ?? "top") as "top" | "bottom"
     if (layer !== "top" && layer !== "bottom") {
       throw new Error(
         `Invalid layer "${layer}" for FabricationNoteRect. Must be "top" or "bottom".`,
       )
     }
 
-    const transform = this._computePcbGlobalTransformBeforeLayout()
-    const center = applyToPoint(transform, {
-      x: props.pcbX ?? 0,
-      y: props.pcbY ?? 0,
-    })
+    const center = this._getGlobalPcbPositionBeforeLayout()
 
     const pcb_component_id =
       this.parent?.pcb_component_id ??
