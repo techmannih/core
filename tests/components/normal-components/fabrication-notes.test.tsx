@@ -6,6 +6,16 @@ test("fabrication note path and text are created", async () => {
 
   circuit.add(
     <board width="12mm" height="10mm">
+      <fabricationnoterect
+        width={2}
+        height={1}
+        pcbX={0.5}
+        pcbY={0.5}
+        strokeWidth={0.2}
+        isFilled
+        hasStroke={false}
+        color="rgba(255, 255, 255, 0.5)"
+      />
       <fabricationnotepath
         route={[
           {
@@ -35,6 +45,7 @@ test("fabrication note path and text are created", async () => {
 
   expect(circuit.db.pcb_fabrication_note_text.list()).toHaveLength(1)
   expect(circuit.db.pcb_fabrication_note_path.list()).toHaveLength(1)
+  expect(circuit.db.pcb_fabrication_note_rect.list()).toHaveLength(1)
 
   await expect(circuit).toMatchPcbSnapshot(import.meta.path)
 })
