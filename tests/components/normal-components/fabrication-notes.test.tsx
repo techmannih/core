@@ -9,8 +9,8 @@ test("fabrication note path and text are created", async () => {
       <fabricationnoterect
         width={2}
         height={1}
-        pcbX={0.5}
-        pcbY={0.5}
+        pcbX={3}
+        pcbY={3}
         strokeWidth={0.2}
         isFilled
         hasStroke={false}
