@@ -19,6 +19,21 @@ export interface PcbFabricationNotePath {
   color?: string
 }
 
+export interface PcbFabricationNoteRect {
+  type: "pcb_fabrication_note_rect"
+  pcb_fabrication_note_rect_id: string
+  pcb_component_id: string
+  layer: LayerRef
+  center: Point
+  width: Length
+  height: Length
+  stroke_width: Length
+  is_filled?: boolean
+  has_stroke?: boolean
+  is_stroke_dashed?: boolean
+  color?: string
+}
+
 export interface PcbComponent {
   type: "pcb_component"
   pcb_component_id: string
