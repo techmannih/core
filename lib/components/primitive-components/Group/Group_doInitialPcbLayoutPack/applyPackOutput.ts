@@ -1,8 +1,36 @@
 import type { Group } from "../Group"
 import { translate, rotate, compose } from "transformation-matrix"
-import { transformPCBElements } from "@tscircuit/circuit-json-util"
+import {
+  transformPCBElements,
+  type CircuitJsonUtilObjects,
+} from "@tscircuit/circuit-json-util"
 import type { PackOutput } from "calculate-packing"
 import type { ClusterInfo } from "./applyComponentConstraintClusters"
+
+const updateCadComponentRotations = (
+  db: CircuitJsonUtilObjects,
+  pcbComponentIds: Iterable<string>,
+  rotationDegrees: number,
+) => {
+  if (!rotationDegrees) return
+
+  const ids = new Set(pcbComponentIds)
+  if (ids.size === 0) return
+
+  const cadComponents = db.cad_component
+    .list()
+    .filter((cad) => cad.pcb_component_id && ids.has(cad.pcb_component_id))
+
+  for (const cad of cadComponents) {
+    const existingRotation = cad.rotation ?? {}
+    db.cad_component.update(cad.cad_component_id, {
+      rotation: {
+        ...existingRotation,
+        z: (existingRotation.z ?? 0) + rotationDegrees,
+      },
+    })
+  }
+}
 
 const isDescendantGroup = (
   db: any,
@@ -53,6 +81,7 @@ export const applyPackOutput = (
               "pcb_component_id" in elm && elm.pcb_component_id === memberId,
           )
         transformPCBElements(related as any, transformMatrix)
+        updateCadComponentRotations(db, [memberId], rotationDegrees)
       }
       continue
     }
@@ -87,6 +116,7 @@ export const applyPackOutput = (
             "pcb_component_id" in elm && elm.pcb_component_id === componentId,
         )
       transformPCBElements(related as any, transformMatrix)
+      updateCadComponentRotations(db, [componentId], rotationDegrees)
       continue
     }
 
@@ -148,6 +178,16 @@ export const applyPackOutput = (
     })
 
     transformPCBElements(relatedElements as any, transformMatrix)
+
+    const pcbComponentIds = new Set(
+      relatedElements
+        .map((elm) =>
+          "pcb_component_id" in elm ? elm.pcb_component_id : undefined,
+        )
+        .filter((id): id is string => Boolean(id)),
+    )
+
+    updateCadComponentRotations(db, pcbComponentIds, rotationDegrees)
     db.pcb_group.update(pcbGroup.pcb_group_id, { center })
   }
 }
