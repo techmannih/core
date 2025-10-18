@@ -23,6 +23,159 @@ import {
 
 const ACCEPTABLE_DIFF_PERCENTAGE = 7.0
 
+type Vec3 = [number, number, number]
+
+const DEFAULT_CAMERA_FOV = 50
+
+function normalizeVector3(value: any): Vec3 {
+  if (Array.isArray(value)) {
+    return [
+      Number(value[0] ?? 0),
+      Number(value[1] ?? 0),
+      Number(value[2] ?? 0),
+    ]
+  }
+
+  if (value && typeof value === "object") {
+    return [
+      Number((value as any).x ?? 0),
+      Number((value as any).y ?? 0),
+      Number((value as any).z ?? 0),
+    ]
+  }
+
+  return [0, 0, 0]
+}
+
+function normalizeAabb(box: any): { min: Vec3; max: Vec3 } {
+  if (!box) {
+    return { min: [0, 0, 0], max: [0, 0, 0] }
+  }
+
+  if (Array.isArray(box) && box.length >= 2) {
+    return { min: normalizeVector3(box[0]), max: normalizeVector3(box[1]) }
+  }
+
+  if (typeof box === "object") {
+    const min = normalizeVector3((box as any).min)
+    const max = normalizeVector3((box as any).max)
+    return { min, max }
+  }
+
+  return { min: [0, 0, 0], max: [0, 0, 0] }
+}
+
+async function renderBottomPresetToBuffer(
+  glbBuffer: Buffer,
+  baseRenderOpts: Record<string, any>,
+): Promise<Buffer> {
+  const sceneContext = await createSceneFromGLTF(glbBuffer, {
+    imageFactory: pureImageFactory,
+  })
+
+  const sceneForBounds = (sceneContext as any)?.scene ?? sceneContext
+  const aabb = normalizeAabb(computeWorldAABB(sceneForBounds))
+
+  const center: Vec3 = [
+    (aabb.min[0] + aabb.max[0]) / 2,
+    (aabb.min[1] + aabb.max[1]) / 2,
+    (aabb.min[2] + aabb.max[2]) / 2,
+  ]
+  const extents: Vec3 = [
+    Math.max(0, aabb.max[0] - aabb.min[0]),
+    Math.max(0, aabb.max[1] - aabb.min[1]),
+    Math.max(0, aabb.max[2] - aabb.min[2]),
+  ]
+
+  const fov = Number(baseRenderOpts.fov ?? DEFAULT_CAMERA_FOV)
+  const halfFovRadians = (Math.max(1e-3, fov) * Math.PI) / 180 / 2
+  const planarRadius = Math.max(extents[0], extents[1]) / 2
+  const safetyPadding = Math.max(extents[2] / 2, planarRadius * 0.1)
+  const cameraDistance =
+    planarRadius / Math.tan(halfFovRadians) + safetyPadding
+
+  const cameraPosition = {
+    x: center[0],
+    y: center[1],
+    z: aabb.min[2] - cameraDistance,
+  }
+
+  const renderResult = await renderSceneFromGLTF(sceneContext, {
+    ...baseRenderOpts,
+    imageFactory: pureImageFactory,
+    cameraPreset: undefined,
+    cameraPosition,
+    cameraTarget: { x: center[0], y: center[1], z: center[2] },
+    cameraUp: { x: 0, y: -1, z: 0 },
+    camera: {
+      position: cameraPosition,
+      target: { x: center[0], y: center[1], z: center[2] },
+      up: { x: 0, y: -1, z: 0 },
+    },
+  })
+
+  return resolveRenderResultToBuffer(renderResult)
+}
+
+async function resolveRenderResultToBuffer(result: any): Promise<Buffer> {
+  if (Buffer.isBuffer(result)) {
+    return result
+  }
+
+  if (result instanceof Uint8Array) {
+    return Buffer.from(result)
+  }
+
+  if (result instanceof ArrayBuffer) {
+    return Buffer.from(result)
+  }
+
+  if (typeof result === "string") {
+    const data = bufferFromDataURI(result)
+    return Buffer.isBuffer(data) ? data : Buffer.from(data)
+  }
+
+  if (result && typeof result === "object") {
+    if (result.dataURI) {
+      const data = bufferFromDataURI(result.dataURI)
+      return Buffer.isBuffer(data) ? data : Buffer.from(data)
+    }
+
+    if (result.buffer) {
+      const buffer = result.buffer
+      if (Buffer.isBuffer(buffer)) {
+        return buffer
+      }
+      if (buffer instanceof Uint8Array) {
+        return Buffer.from(buffer)
+      }
+      if (buffer instanceof ArrayBuffer) {
+        return Buffer.from(buffer)
+      }
+    }
+
+    if (result.image) {
+      const encoded = await encodePNGToBuffer(result.image)
+      return Buffer.isBuffer(encoded) ? encoded : Buffer.from(encoded)
+    }
+
+    if (result.png) {
+      const png = result.png
+      if (Buffer.isBuffer(png)) {
+        return png
+      }
+      if (png instanceof Uint8Array) {
+        return Buffer.from(png)
+      }
+      if (png instanceof ArrayBuffer) {
+        return Buffer.from(png)
+      }
+    }
+  }
+
+  throw new Error("Unable to resolve render result to PNG buffer")
+}
+
 async function saveSvgSnapshotOfCircuitJson({
   soup,
   testPath,
@@ -84,22 +237,31 @@ async function saveSvgSnapshotOfCircuitJson({
       const glbBuffer = Buffer.isBuffer(gltfOrGlb)
         ? gltfOrGlb
         : Buffer.from(gltfOrGlb as any)
-      const resolvedRenderOpts = {
+      const { cameraPreset, poppygl: poppyglOptions } = options ?? {}
+
+      const resolvedRenderOpts: Record<string, any> = {
         width: 1024,
         height: 1024,
         ambient: 0.2,
         gamma: 2.2,
-        ...(options?.poppygl ?? {}),
+        ...poppyglOptions,
       }
-      const png = await renderGLTFToPNGBufferFromGLBBuffer(
-        glbBuffer,
-        resolvedRenderOpts,
-      )
+
+      const pngResult =
+        cameraPreset === "bottom"
+          ? await renderBottomPresetToBuffer(glbBuffer, resolvedRenderOpts)
+          : await renderGLTFToPNGBufferFromGLBBuffer(
+              glbBuffer,
+              cameraPreset != null
+                ? { ...resolvedRenderOpts, cameraPreset }
+                : resolvedRenderOpts,
+            )
+      const pngBuffer = await resolveRenderResultToBuffer(pngResult)
       if (process.env.SAVE_3D_DEBUG_SNAPSHOT === "1") {
         const debugPath = filePath.replace(/\.png$/, ".glb")
         fs.writeFileSync(debugPath, glbBuffer)
       }
-      content = Buffer.isBuffer(png) ? png : Buffer.from(png)
+      content = pngBuffer
       break
     }
   }
