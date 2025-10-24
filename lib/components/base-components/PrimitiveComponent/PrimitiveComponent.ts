@@ -600,6 +600,8 @@ export abstract class PrimitiveComponent<
     component.onAddToParent(this)
     component.parent = this
     this.children.push(component)
+
+    this._clearSelectorCaches()
   }
 
   addAll(components: PrimitiveComponent[]) {
@@ -612,6 +614,8 @@ export abstract class PrimitiveComponent<
     this.children = this.children.filter((c) => c !== component)
     this.childrenPendingRemoval.push(component)
     component.shouldBeRemoved = true
+
+    this._clearSelectorCaches()
   }
 
   getSubcircuitSelector(): string {
@@ -753,6 +757,17 @@ export abstract class PrimitiveComponent<
   }
 
   _cachedSelectOneQueries: Map<string, PrimitiveComponent | null> = new Map()
+  _clearSelectorCaches(): void {
+    this._cachedSelectAllQueries.clear()
+    this._cachedSelectOneQueries.clear()
+
+    if (this.isSubcircuit) {
+      this.renderPhaseStates.OptimizeSelectorCache.initialized = false
+      this.renderPhaseStates.OptimizeSelectorCache.dirty = true
+    }
+
+    this.parent?._clearSelectorCaches?.()
+  }
   selectOne<T = PrimitiveComponent>(
     selectorRaw: string,
     options?: {

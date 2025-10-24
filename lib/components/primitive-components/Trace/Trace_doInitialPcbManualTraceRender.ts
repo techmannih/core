@@ -17,9 +17,13 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
   if (!allPortsFound) return
 
   const portsWithoutMatchedPcbPrimitive: Port[] = []
+  const portsMissingPcbPortId: Port[] = []
   for (const port of ports) {
     if (!port._hasMatchedPcbPrimitive()) {
       portsWithoutMatchedPcbPrimitive.push(port)
+    }
+    if (!port.pcb_port_id) {
+      portsMissingPcbPortId.push(port)
     }
   }
 
@@ -36,6 +40,10 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
         .map((p) => p.pcb_port_id!)
         .filter(Boolean),
     })
+    return
+  }
+
+  if (portsMissingPcbPortId.length > 0) {
     return
   }
 
