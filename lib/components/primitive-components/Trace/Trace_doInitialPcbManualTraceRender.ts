@@ -73,8 +73,13 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
     layer: layer as LayerRef,
     start_pcb_port_id: anchorPort.pcb_port_id!,
   })
-  const transform =
-    anchorPort?._computePcbGlobalTransformBeforeLayout?.() || identity()
+  const matchedAnchorPrimitive = anchorPort?.matchedComponents.find(
+    (c) => c.isPcbPrimitive,
+  )
+
+  const transform = matchedAnchorPrimitive
+    ? matchedAnchorPrimitive._computePcbGlobalTransformBeforeLayout()
+    : anchorPort?._computePcbGlobalTransformBeforeLayout?.() || identity()
   for (const pt of props.pcbPath) {
     let coordinates: { x: number; y: number }
     let isGlobalPosition = false
@@ -110,7 +115,14 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
     // Only apply transform to relative coordinates, not global positions
     const finalCoordinates = isGlobalPosition
       ? coordinates
-      : applyToPoint(transform, coordinates)
+      : (() => {
+          const origin = applyToPoint(transform, { x: 0, y: 0 })
+          const transformed = applyToPoint(transform, coordinates)
+          return {
+            x: anchorPos.x + (transformed.x - origin.x),
+            y: anchorPos.y + (transformed.y - origin.y),
+          }
+        })()
 
     route.push({
       route_type: "wire",
