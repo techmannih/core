@@ -245,6 +245,11 @@ export class Port extends PrimitiveComponent<typeof portProps> {
    */
   registerMatch(component: PrimitiveComponent) {
     this.matchedComponents.push(component)
+
+    if (component.isPcbPrimitive) {
+      this._markDirty?.("PcbPortRender")
+      this._markConnectedTracesDirtyForPcb()
+    }
   }
   getNameAndAliases() {
     const { _parsedProps: props } = this
