@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test"
 import { getTestFixture } from "tests/fixtures/get-test-fixture"
+import external0402Footprint from "tests/fixtures/assets/external-0402-footprint.json"
 
 test("trace pcbPath supports selectors", async () => {
   const { circuit } = getTestFixture()
@@ -67,7 +68,15 @@ test("trace pcbPath selectors can set thickness", async () => {
 })
 
 test("trace pcbPath selectors work with KiCad footprints", async () => {
-  const { circuit } = getTestFixture()
+  const { circuit } = getTestFixture({
+    platform: {
+      footprintLibraryMap: {
+        kicad: async () => ({
+          footprintCircuitJson: external0402Footprint,
+        }),
+      },
+    },
+  })
 
   circuit.add(
     <board width="10mm" height="10mm">
