@@ -7,6 +7,7 @@ import {
   type RouteHintPoint,
   type SchematicNetLabel,
   type SchematicTrace,
+  length,
 } from "circuit-json"
 import { getFullConnectivityMapFromCircuitJson } from "circuit-json-to-connectivity-map"
 import { DirectLineRouter } from "lib/utils/autorouting/DirectLineRouter"
@@ -66,7 +67,69 @@ export class Trace
    * Get the explicit trace thickness, supporting 'width' as an alias for 'thickness'
    */
   _getExplicitTraceThickness(): number | undefined {
-    return this._parsedProps.thickness ?? this._parsedProps.width
+    const explicitThickness =
+      this._parsedProps.thickness ?? this._parsedProps.width
+
+    if (explicitThickness === undefined || explicitThickness === null) {
+      return undefined
+    }
+
+    if (typeof explicitThickness === "number") {
+      return explicitThickness
+    }
+
+    if (typeof explicitThickness === "string") {
+      try {
+        return length.parse(explicitThickness)
+      } catch (error) {
+        const numericValue = Number.parseFloat(explicitThickness)
+        if (Number.isFinite(numericValue)) {
+          return numericValue
+        }
+      }
+      return undefined
+    }
+
+    if (
+      typeof explicitThickness === "object" &&
+      explicitThickness !== null &&
+      "value" in explicitThickness
+    ) {
+      const { value, unit } = explicitThickness as {
+        value?: unknown
+        unit?: unknown
+      }
+
+      if (typeof value !== "number") {
+        return undefined
+      }
+
+      if (unit === undefined || unit === null) {
+        return value
+      }
+
+      if (typeof unit === "string") {
+        switch (unit) {
+          case "mm":
+            return value
+          case "mil":
+            return value * 0.0254
+          case "in":
+          case "inch":
+            return value * 25.4
+          case "cm":
+            return value * 10
+          case "m":
+            return value * 1000
+          default:
+            break
+        }
+      }
+
+      return value
+    }
+
+    return undefined
   }
 
   get config() {
