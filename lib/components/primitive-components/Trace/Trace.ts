@@ -311,6 +311,22 @@ export class Trace
     Trace_doInitialPcbManualTraceRender(this)
   }
 
+  updatePcbManualTraceRender(): void {
+    if (this.root?.pcbDisabled) return
+    if (!this._parsedProps.pcbPath || this._parsedProps.pcbPath.length === 0)
+      return
+
+    const { db } = this.root!
+
+    if (this.pcb_trace_id) {
+      db.pcb_trace.delete(this.pcb_trace_id)
+      this.pcb_trace_id = null
+      this._portsRoutedOnPcb = []
+    }
+
+    Trace_doInitialPcbManualTraceRender(this)
+  }
+
   doInitialPcbTraceRender(): void {
     Trace_doInitialPcbTraceRender(this)
   }

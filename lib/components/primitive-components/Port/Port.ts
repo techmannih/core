@@ -315,6 +315,19 @@ export class Port extends PrimitiveComponent<typeof portProps> {
     return connectedTraces
   }
 
+  private _markConnectedTracesDirtyForPcb() {
+    const connectedTraces = this._getDirectlyConnectedTraces()
+    for (const trace of connectedTraces) {
+      const hasManualPath =
+        !!trace._parsedProps.pcbPath && trace._parsedProps.pcbPath.length > 0
+      if (hasManualPath) {
+        trace._markDirty?.("PcbManualTraceRender")
+      } else {
+        trace._markDirty?.("PcbTraceRender")
+      }
+    }
+  }
+
   doInitialSourceRender(): void {
     const { db } = this.root!
     const { _parsedProps: props } = this
@@ -415,6 +428,7 @@ export class Port extends PrimitiveComponent<typeof portProps> {
         is_board_pinout: this._isBoardPinoutFromAttributes(),
       })
       this.pcb_port_id = pcb_port.pcb_port_id
+      this._markConnectedTracesDirtyForPcb()
     } else {
       const pcbMatch: any = pcbMatches[0]
       throw new Error(
@@ -466,6 +480,7 @@ export class Port extends PrimitiveComponent<typeof portProps> {
       is_board_pinout: this._isBoardPinoutFromAttributes(),
     })
     this.pcb_port_id = pcb_port.pcb_port_id
+    this._markConnectedTracesDirtyForPcb()
   }
 
   doInitialSchematicPortRender(): void {
