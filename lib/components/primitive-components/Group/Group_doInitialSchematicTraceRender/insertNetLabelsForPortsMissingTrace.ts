@@ -73,5 +73,6 @@ export const insertNetLabelsForPortsMissingTrace = ({
         ? { source_net_id: sourceNet.source_net_id }
         : {}),
     })
+    db.schematic_port.update(schOrSrcPortId, { is_connected: true })
   }
 }
