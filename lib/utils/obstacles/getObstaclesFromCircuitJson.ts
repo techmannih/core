@@ -186,7 +186,10 @@ export const getObstaclesFromCircuitJson = (
         })
       }
     } else if (element.type === "pcb_plated_hole") {
-      if (element.shape === "circle") {
+      if (
+        element.shape === "circle" ||
+        (element.shape === "oval" && element.outer_width === element.outer_height)
+      ) {
         obstacles.push({
           // @ts-ignore
           type: "oval",
@@ -195,8 +198,8 @@ export const getObstaclesFromCircuitJson = (
             x: element.x,
             y: element.y,
           },
-          width: element.outer_diameter,
-          height: element.outer_diameter,
+          width: element.outer_diameter ?? element.outer_width,
+          height: element.outer_diameter ?? element.outer_height,
           connectedTo: withNetId([element.pcb_plated_hole_id]),
         })
       } else if (element.shape === "circular_hole_with_rect_pad") {
