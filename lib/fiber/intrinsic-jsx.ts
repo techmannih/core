@@ -1,5 +1,6 @@
 import type * as Props from "@tscircuit/props"
 import type { VoltageSourceProps } from "lib/components/normal-components/VoltageSource"
+import type { CourtyardRectProps } from "lib/components/primitive-components/CourtyardRect"
 import type { DetailedHTMLProps, SVGProps } from "react"
 
 export interface TscircuitElements {
@@ -62,6 +63,7 @@ export interface TscircuitElements {
   pcbnotetext: Props.PcbNoteTextProps
   pcbnotepath: Props.PcbNotePathProps
   pcbnotedimension: Props.PcbNoteDimensionProps
+  courtyardrect: CourtyardRectProps
   fabricationnotetext: Props.FabricationNoteTextProps
   fabricationnotepath: Props.FabricationNotePathProps
   fabricationnotedimension: Props.FabricationNoteDimensionProps
