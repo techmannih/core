@@ -487,6 +487,10 @@ export class Port extends PrimitiveComponent<typeof portProps> {
         is_board_pinout: this._isBoardPinoutFromAttributes(),
       })
       this.pcb_port_id = pcb_port.pcb_port_id
+
+      for (const trace of this._getDirectlyConnectedTraces()) {
+        trace._markDirty("PcbManualTraceRender")
+      }
     } else {
       const pcbMatch: any = pcbMatches[0]
       throw new Error(
@@ -563,6 +567,10 @@ export class Port extends PrimitiveComponent<typeof portProps> {
       is_board_pinout: this._isBoardPinoutFromAttributes(),
     })
     this.pcb_port_id = pcb_port.pcb_port_id
+
+    for (const trace of this._getDirectlyConnectedTraces()) {
+      trace._markDirty("PcbManualTraceRender")
+    }
   }
 
   /**
