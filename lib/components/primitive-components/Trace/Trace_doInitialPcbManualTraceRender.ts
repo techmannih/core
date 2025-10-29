@@ -24,6 +24,16 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
   }
 
   if (portsWithoutMatchedPcbPrimitive.length > 0) {
+    const awaitingFootprintLoad = portsWithoutMatchedPcbPrimitive.some((port) => {
+      const parent = port.parent as { _hasStartedFootprintUrlLoad?: boolean } | null
+      return parent?._hasStartedFootprintUrlLoad
+    })
+
+    if (awaitingFootprintLoad) {
+      trace.renderPhaseStates.PcbManualTraceRender.dirty = true
+      return
+    }
+
     db.pcb_trace_error.insert({
       error_type: "pcb_trace_error",
       source_trace_id: trace.source_trace_id!,
